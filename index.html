@@ -1,1 +1,385 @@
 
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="https://unpkg.com/jspsych@7.0.0"></script>
+    
+    <script src="https://unpkg.com/@jspsych/plugin-image-button-response@1.1.1"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-html-keyboard-response@1.0.0"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-image-keyboard-response@1.0.0"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-browser-check@1.0.0"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-canvas-keyboard-response@1.0.0"></script>
+    <script src="jhttps://unpkg.com/@spsych/plugin-survey-likert@1.0.0"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-instructions@1.0.0"></script>
+    <link rel="stylesheet" href="https://unpkg.com/jspsych@7.0.0/css/jspsych.css">
+    <link rel="stylesheet" href="https://unpkg.com/@jspsych/plugin-survey@0.1.1/css/survey.css">
+    <script src="https://unpkg.com/mathjs@10.4.0/lib/browser/math.js"></script>
+    <style>
+      html,body {
+        background-color: #808080;
+        color: white;
+      }
+    </style>
+  </head>
+  <body></body>
+  <script>
+
+
+// Task description
+/* On each trial participants see two shapes. One is circle, the other is a not a circle.
+The task is to report which of the two shapes was not a circle.
+
+There is a training block consisting of 2 trials in which participants receive feedback whether their response was correct or not. 
+After the training block is the test block where participants don't recieve feedback. The length of the test block depends on the participant's performance.
+After 3 correct responses, the shape of the non-circle is changed to look more like a circle (i.e. the task becomes harder).
+AFter 1 incorrect response, the shape of the non-circle is changed to look less like a circle (i.e. the task becomes easier).
+
+A change in response correctness between trials- (1) trial n response is correct -> trial n+1 response is incorrect OR (2) trial n response is incorrect -> trial n+1 response is correct,
+is called a "reversal". The task ends after 10 reversals.
+
+Currently, the change in the shape of the non-circle following an incorrect response/3 correct responses is very small, so the task might be a bit long.
+
+*/
+// stimulus path
+let stim_path = "radial-frequency-stimuli/";
+
+// First function used to create the stimulus (do not disturb).
+function rf_D4creator(x, y, fr, theta, C, Lm, Rm, A, Wp) {
+  // fr : radial frequency (angle number, should be integer)
+  // theta : the phase of the modulation
+  // C : contrast (I think [1] is normal)
+  // Lm : the mean luminance of the pattern (0 ~ 1, 0.5 is gray)
+  // Rm : the mean radius
+  // A : the amplitude of modulation (angle strenth)
+  // Wp : D4 peak spatial frequency (the width  of the line)
+  let scope = {
+    x: x,
+    y: y,
+    fr: fr,
+    theta: theta,
+    C: C,
+    Lm: Lm,
+    Rm: Rm,
+    A: A,
+    Wp: Wp
+  }
+
+
+  var sigma = math.evaluate('2.^(1/2) ./ (pi.*Wp)', scope);
+  sigma
+  scope['sigma'] = sigma
+  
+  var R = math.evaluate('Rm.* (1 + A.* sin(fr.* atan2(y, x) + theta))', scope)
+  scope['R'] = R
+
+  var r = math.evaluate('( (x.^2 + y.^2).^(1/2) - R ) ./ sigma', scope)
+  scope['r'] = r
+
+  var rf_D4 = math.evaluate('Lm .* ( 1 + C.*(1-4.*r.^2 + 4./3.*r.^4) .* exp(-r.^2) )', scope)
+  rf_D4
+
+  return rf_D4
+}
+
+
+// Second function used to create the stimulus 
+// This function generates the array of picel values to be drawn.
+// When using the function, we only want to change the first argument (intensity), which determines the shape of the stimulus. 
+// If intensity=0, the shape will be a perfect cirtle.
+function rf_picCreator(intensity=0.008, picPixel=300, fr=4, C=0.8, Lm=0.5) {
+  picPixel = Math.round(picPixel/2)
+  var theta = Math.random() * Math.PI
+  var Rm = picPixel / 4
+  var Wp = 1 / Rm * 2
+
+  var xRange = math.range(-picPixel, picPixel)
+  var yRange = math.range(-picPixel, picPixel)
+  var xyGrid = math.setCartesian(xRange, yRange)
+  var x = math.column(xyGrid, 0)
+  var y = math.column(xyGrid, 1)
+  var pic = rf_D4creator(x, y, fr, theta, C, Lm, Rm, intensity, Wp)
+  return math.reshape(pic, [picPixel * 2, picPixel * 2]).toArray()
+}
+
+const jsPsych = initJsPsych({
+    //display_element: "experiment-container",
+    use_webaudio: false,
+        on_finish: function () {
+            jsPsych.data.displayData();
+        },
+  });
+    let staircase_value = 0.008; // might be too easy?
+    let staircase_change = 0.0005;
+    let non_circle = 1; // 1 or 2
+    let consecutive_correct_responses = 0;
+    let last_change = null;
+    let reversals = 0;
+
+    let training_staircase_value = 0.05;
+
+      const SubjectiveRatingQs = [
+          {
+              question: "How confident are you that correctly identified the non-circle in the last pair of shapes?",
+              sliderRange: [1, 4],
+              anchors: ["1. Guessed", "2. Somewhat confident", "3. Confident", "4. Completely confident"],
+          },
+          {
+              question: "How easy/difficult was it to identify the non-circle in the last pair of shapes?",
+              sliderRange: [1, 4],
+              anchors: ["1. Very difficult", "2. Somewhat difficult", "3. Somewhat easy", "4. Very easy"],
+              repeats: 3,
+          },
+      ];
+
+// define subjective rating question - appears only in testing phase
+    var subjective_q_id = [];
+    const subjective_rating = {
+    type: jsPsychSurveyLikert,
+    questions: [{
+        prompt: () => SubjectiveRatingQs[subjective_q_id].question,
+        labels: () => SubjectiveRatingQs[subjective_q_id].anchors,
+        name: () => SubjectiveRatingQs[subjective_q_id].id
+    }],
+    scale_width: 500,
+    button_label: "Continue",
+    on_start: function () {
+        console.log(subjective_q_id)
+    }
+}
+    
+      // conditional timeline - determines if a subjective rating is required or not (it is required on every 3rd trial in the test phase)
+      const if_node = {
+          timeline: [subjective_rating],
+          conditional_function: function () {
+              if (jsPsych.data.get().select('test').values.length % 3 == 0) {  // ask a subjective rating question every 3rd trial
+                  subjective_q_id = jsPsych.randomization.sampleWithoutReplacement([0, 1], 1);
+                  return true; //ask subjective response question
+              } else {
+                  return false; // don't ask subjective response question
+              }
+          }
+      }
+
+
+
+// define feedback - apppears only in training phase
+const training_feedback = {
+  type: jsPsychHtmlKeyboardResponse,
+  stimulus: function(){
+    // The feedback stimulus is a dynamic parameter because we can't know in advance whether
+    // the stimulus should be 'correct' or 'incorrect'.
+    // Instead, this function will check the accuracy of the last response and use that information to set
+    // the stimulus value on each trial.
+    let last_trial_correct = jsPsych.data.get().last(1).values()[0].correct;
+    if(last_trial_correct){
+      return "<p>Your response was correct!</p> <p> Press Space to continue </p>"; // the parameter value has to be returned from the function
+    } else {
+      return "<p>Your response was not correct.</p> <p> Press Space to continue </p>"; // the parameter value has to be returned from the function
+    }
+  },
+  //trial_duration: 5000,
+  response_ends_trial: true,
+  choices: " "
+}
+
+const training_timeline = {
+      timeline: [
+        {
+          type: jsPsychHtmlKeyboardResponse,
+          stimulus: "<p style='font-size:60px;'>+</p>",
+          choices: "NO_KEYS",
+          trial_duration: 500,
+          on_finish: () => {
+            // randomly determine whether the non circle is in the first or second trial
+            non_circle = jsPsych.randomization.randomInt(1, 2);
+            //console.log(non_circle);
+            //console.log(training_staircase_value);
+          },
+        },
+        {
+          type: jsPsychCanvasKeyboardResponse,
+          canvas_size: [300, 300],
+          stimulus: (c) => {
+            const rf_value = non_circle == 1 ? training_staircase_value : 0;
+            const pixels = rf_picCreator(rf_value);
+
+            const ctx = c.getContext("2d");
+
+            const imgData = ctx.getImageData(0, 0, 300, 300);
+            const imgPixels = imgData.data;
+            let imgPixelCounter = 0;
+            for (let y = 0; y < pixels.length; y++) {
+              for (let x = 0; x < pixels[y].length; x++) {
+                imgPixels[imgPixelCounter] = pixels[x][y] * 255;
+                imgPixels[imgPixelCounter + 1] = pixels[x][y] * 255;
+                imgPixels[imgPixelCounter + 2] = pixels[x][y] * 255;
+                imgPixels[imgPixelCounter + 3] = 255; // alpha channel
+                imgPixelCounter += 4;
+              }
+            }
+            ctx.putImageData(imgData, 0, 0);
+          },
+          choices: "NO_KEYS",
+          trial_duration: 500,
+        },
+        {
+          type: jsPsychHtmlKeyboardResponse,
+          stimulus: "",
+          choices: "NO_KEYS",
+          trial_duration: 200
+        },
+        {
+          type: jsPsychCanvasKeyboardResponse,
+          canvas_size: [300, 300],
+          stimulus: (c) => {
+            const rf_value = non_circle == 2 ? training_staircase_value : 0;
+            const pixels = rf_picCreator(rf_value);
+
+            const ctx = c.getContext("2d");
+
+            const imgData = ctx.getImageData(0, 0, 300, 300);
+            const imgPixels = imgData.data;
+            let imgPixelCounter = 0;
+            for (let y = 0; y < pixels.length; y++) {
+              for (let x = 0; x < pixels[y].length; x++) {
+                imgPixels[imgPixelCounter] = pixels[x][y] * 255;
+                imgPixels[imgPixelCounter + 1] = pixels[x][y] * 255;
+                imgPixels[imgPixelCounter + 2] = pixels[x][y] * 255;
+                imgPixels[imgPixelCounter + 3] = 255; // alpha channel
+                imgPixelCounter += 4;
+              }
+            }
+            ctx.putImageData(imgData, 0, 0);
+          },
+          choices: "NO_KEYS",
+            trial_duration: 500,
+           
+        },
+        {
+          type: jsPsychHtmlKeyboardResponse,
+          stimulus: "<p>Which image was not a circle?</p><p>Press 1 for the first and 2 for the second.</p>",
+            choices: ["1", "2"],
+           on_finish: (data) => {
+              data.correct = data.response == non_circle;
+              console.log(non_circle);
+              console.log(data.correct);
+          }
+        },
+        training_feedback
+      ],
+      repetitions: 2 
+      
+    };
+
+
+
+const test_timeline = {
+      timeline: [
+        {
+          type: jsPsychHtmlKeyboardResponse,
+          stimulus: "<p style='font-size:60px;'>+</p>",
+          choices: "NO_KEYS",
+          trial_duration: 500,
+          on_finish: () => {
+            // randomly determine whether the non circle is in the first or second trial
+            non_circle = jsPsych.randomization.randomInt(1, 2);
+            //console.log(non_circle);
+            //console.log(staircase_value);
+          },
+        },
+        {
+          type: jsPsychImageKeyboardResponse,
+          stimulus: [],
+          choices: "NO_KEYS",
+          trial_duration: 500,
+          on_start: function(trial) {
+            let rf_value = non_circle == 1 ? staircase_value : 0;
+            trial.stimulus = stim_path+('shape_')+(rf_value.toString())+('.png')
+          }
+        },
+        {
+          type: jsPsychHtmlKeyboardResponse,
+          stimulus: "",
+          choices: "NO_KEYS",
+          trial_duration: 200
+        },
+        {
+          type: jsPsychImageKeyboardResponse,
+          canvas_size: [300, 300],
+          stimulus: [],
+          choices: "NO_KEYS",
+          trial_duration: 500,
+          on_start: function(trial) {
+            let rf_value = non_circle == 2 ? staircase_value : 0;
+            trial.stimulus = stim_path+('shape_')+(rf_value.toString())+('.png')
+          }
+        },
+        {
+          type: jsPsychHtmlKeyboardResponse,
+          stimulus: "<p>Which image was not a circle?</p><p>Press 1 for the first and 2 for the second.</p>",
+            choices: ["1", "2"],
+            on_start: function () {
+                console.log(non_circle);
+},
+          on_finish: (data) => {
+            data.test = 1;
+            data.correct = data.response == non_circle;
+              console.log(data.correct);
+              
+            if(data.correct){
+              consecutive_correct_responses++;
+              if(consecutive_correct_responses == 3){
+                staircase_value -= staircase_change;
+                if(last_change == "up"){
+                  reversals++;
+                }
+                last_change = "down";
+                consecutive_correct_responses = 0;
+              }
+            } else {
+              consecutive_correct_responses = 0;
+              staircase_value += staircase_change;
+              if(last_change == "down"){
+                reversals++;
+              }
+              last_change = "up";
+            }
+          }
+        },
+        if_node,
+      ],
+      loop_function: () => {
+        return reversals < 2;
+      }
+    };
+
+
+  // Task instructions
+  const TrainingInstructions = {
+    type: jsPsychInstructions,
+    pages: ['In this task you will see two shapes one after the other.<br><br>'+
+          'One of the shapes will be a circle, and the other will not be a circle.<br>' +
+          'Your task will be to report which shape - the first or the second - was <b>NOT</b> the circle.<br>You will use your keyboard numberpad to provide your response.<br><br>'+
+          'We will first do two examples for training.<br>'+
+          'When you click on <b>Start Training</b>, the training will start.'],
+        show_clickable_nav: true,
+        allow_backward: false,
+        button_label_next: 'Start Training'
+  };
+
+  // Task instructions
+  const TestInstructions = {
+    type: jsPsychInstructions,
+    pages: ['You completed the training, now is time for the main task.<br><br>'+
+          'You will again see two shapes, and your task will be to report whether the first or the second shape you saw was <b>NOT</b> the circle<br>.' +
+          'On some trials you will be asked an additional question - for example, how easy the trial was. <br><br>'+
+          'When you click on <b>Start Task</b>, the task will start.'],
+        show_clickable_nav: true,
+        allow_backward: false,
+        button_label_next: 'Start Task'
+  };
+
+
+    jsPsych.run([TestInstructions, test_timeline]);
+  </script>
+</html>
