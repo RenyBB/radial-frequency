@@ -136,7 +136,7 @@ const jsPsych = initJsPsych({
 
 // define subjective rating question - appears only in testing phase
     var subjective_q_id = [];
-    const subjective_rating = {
+    /*const subjective_rating = {
     type: jsPsychSurveyLikert,
     questions: [{
         prompt: () => SubjectiveRatingQs[subjective_q_id].question,
@@ -148,10 +148,10 @@ const jsPsych = initJsPsych({
     on_start: function () {
         console.log(subjective_q_id)
     }
-}
+}*/
     
       // conditional timeline - determines if a subjective rating is required or not (it is required on every 3rd trial in the test phase)
-      const if_node = {
+      /*const if_node = {
           timeline: [subjective_rating],
           conditional_function: function () {
               if (jsPsych.data.get().select('test').values.length % 3 == 0) {  // ask a subjective rating question every 3rd trial
@@ -161,7 +161,7 @@ const jsPsych = initJsPsych({
                   return false; // don't ask subjective response question
               }
           }
-      }
+      }*/
 
 
 
@@ -297,7 +297,7 @@ const test_timeline = {
           trial_duration: 500,
           on_start: function(trial) {
             let rf_value = non_circle == 1 ? staircase_value : 0;
-            trial.stimulus = stim_path+('shape_')+(rf_value.toString())+('.png')
+            trial.stimulus = [stim_path+('shape_')+(rf_value.toString())+('.png')];
           }
         },
         {
@@ -314,7 +314,7 @@ const test_timeline = {
           trial_duration: 500,
           on_start: function(trial) {
             let rf_value = non_circle == 2 ? staircase_value : 0;
-            trial.stimulus = stim_path+('shape_')+(rf_value.toString())+('.png')
+            trial.stimulus = [stim_path+('shape_')+(rf_value.toString())+('.png')];
           }
         },
         {
@@ -349,7 +349,7 @@ const test_timeline = {
             }
           }
         },
-        if_node,
+        //if_node,
       ],
       loop_function: () => {
         return reversals < 2;
