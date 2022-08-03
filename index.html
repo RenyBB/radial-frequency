@@ -284,7 +284,7 @@ const test_timeline = {
           stimulus: "<p style='font-size:60px;'>+</p>",
           choices: "NO_KEYS",
           trial_duration: 1000,
-          on_finish: () => {
+          on_finish: (data) => {
             // randomly determine whether the non circle is in the first or second trial
             non_circle = jsPsych.randomization.sampleWithReplacement([1, 2], 1)[0];
             data.non_circle_location = non_circle; 
