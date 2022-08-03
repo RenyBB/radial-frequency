@@ -194,7 +194,7 @@ const training_timeline = {
           trial_duration: 500,
           on_finish: () => {
             // randomly determine whether the non circle is in the first or second trial
-            non_circle = jsPsych.randomization.randomInt(1, 2);
+            non_circle = jsPsych.randomization.sampleWithReplacement([1, 2], 1)[0]
             //console.log(non_circle);
             //console.log(training_staircase_value);
           },
@@ -285,7 +285,7 @@ const test_timeline = {
           trial_duration: 500,
           on_finish: () => {
             // randomly determine whether the non circle is in the first or second trial
-            non_circle = jsPsych.randomization.randomInt(1, 2);
+            non_circle = jsPsych.randomization.sampleWithReplacement([1, 2], 1)[0];
             //console.log(non_circle);
             //console.log(staircase_value);
           },
