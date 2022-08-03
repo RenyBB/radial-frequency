@@ -200,32 +200,37 @@ const training_timeline = {
             //console.log(training_staircase_value);
           },
         },
-        {
+       {
           type: jsPsychImageKeyboardResponse,
           stimulus: [],
           choices: "NO_KEYS",
           trial_duration: 500,
-          on_start: function(trial) => {
-            let rf_value = non_circle == 1 ? training_staircase_value : 0;
+          on_start: function(trial) {
+            let rf_value = non_circle == 1 ? training_staircase_value: 0;
             let rf_value_to_use =  parseFloat(rf_value.toFixed(4));
             trial.stimulus = [stim_path+('shape_')+(rf_value_to_use.toString())+('.png')];
             console.log(rf_value_to_use);
           }
         },
-        {
+
+
+ {
           type: jsPsychHtmlKeyboardResponse,
           stimulus: "",
           choices: "NO_KEYS",
           trial_duration: 500
         },
-        {
+
+ {
           type: jsPsychImageKeyboardResponse,
+          canvas_size: [300, 300],
           stimulus: [],
           choices: "NO_KEYS",
           trial_duration: 500,
-          on_start: function(trial) => {
-            let rf_value = non_circle == 2 ? training_staircase_value : 0;
-            let rf_value_to_use =  parseFloat(rf_value.toFixed(4));
+          post_trial_gap: 0,
+          on_start: function(trial) {
+            let rf_value = non_circle == 2 ? training_staircase_value: 0;
+            let rf_value_to_use = parseFloat(rf_value.toFixed(4));
             trial.stimulus = [stim_path+('shape_')+(rf_value_to_use.toString())+('.png')];
             console.log(rf_value_to_use);
           }
