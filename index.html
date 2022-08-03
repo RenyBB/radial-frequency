@@ -301,6 +301,7 @@ const test_timeline = {
             let rf_value = non_circle == 1 ? staircase_value : 0;
             let rf_value_to_use =  parseFloat(rf_value.toFixed(4));
             trial.stimulus = [stim_path+('shape_')+(rf_value_to_use.toString())+('.png')];
+            console.log(rf_value_to_use);
           }
         },
         {
@@ -320,6 +321,7 @@ const test_timeline = {
             let rf_value = non_circle == 2 ? staircase_value : 0;
             let rf_value_to_use = parseFloat(rf_value.toFixed(4));
             trial.stimulus = [stim_path+('shape_')+(rf_value_to_use.toString())+('.png')];
+            console.log(rf_value_to_use);
           }
         },
         {
