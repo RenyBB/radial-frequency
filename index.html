@@ -299,7 +299,14 @@ const test_timeline = {
           trial_duration: 500,
           on_start: function(trial) {
             let rf_value = non_circle == 1 ? staircase_value : 0;
-            trial.stimulus = [stim_path+('shape_')+((rf_value.toFixed(4)).toString())+('.png')];
+            let rf_value_to_use = [];
+            if (rf_value.toString().length>3) {
+              rf_value_to_use = rf_value.toFixed(4);
+            }
+            else {
+              rf_value_to_use = rf_value;
+            }
+            trial.stimulus = [stim_path+('shape_')+(rf_value_to_use.toString())+('.png')];
           }
         },
         {
@@ -317,7 +324,14 @@ const test_timeline = {
           post_trial_gap: 0,
           on_start: function(trial) {
             let rf_value = non_circle == 2 ? staircase_value : 0;
-            trial.stimulus = [stim_path+('shape_')+((rf_value.toFixed(4)).toString())+('.png')];
+            let rf_value_to_use = [];
+            if (rf_value.toString().length>3) {
+              rf_value_to_use = rf_value.toFixed(4);
+            }
+            else {
+              rf_value_to_use = rf_value;
+            }
+            trial.stimulus = [stim_path+('shape_')+(rf_value_to_use.toString())+('.png')];
           }
         },
         {
