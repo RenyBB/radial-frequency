@@ -300,7 +300,7 @@ const test_timeline = {
           on_start: function(trial) {
             let rf_value = non_circle == 1 ? staircase_value : 0;
             let rf_value_to_use = [];
-            if (rf_value.toString().length>3) {
+            if (rf_value.toString().length>5) {
               rf_value_to_use = rf_value.toFixed(4);
             }
             else {
@@ -325,7 +325,7 @@ const test_timeline = {
           on_start: function(trial) {
             let rf_value = non_circle == 2 ? staircase_value : 0;
             let rf_value_to_use = [];
-            if (rf_value.toString().length>3) {
+            if (rf_value.toString().length>5) {
               rf_value_to_use = rf_value.toFixed(4);
             }
             else {
