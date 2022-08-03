@@ -201,63 +201,34 @@ const training_timeline = {
           },
         },
         {
-          type: jsPsychCanvasKeyboardResponse,
-          canvas_size: [300, 300],
-          stimulus: (c) => {
-            const rf_value = non_circle == 1 ? training_staircase_value : 0;
-            const pixels = rf_picCreator(rf_value);
-
-            const ctx = c.getContext("2d");
-
-            const imgData = ctx.getImageData(0, 0, 300, 300);
-            const imgPixels = imgData.data;
-            let imgPixelCounter = 0;
-            for (let y = 0; y < pixels.length; y++) {
-              for (let x = 0; x < pixels[y].length; x++) {
-                imgPixels[imgPixelCounter] = pixels[x][y] * 255;
-                imgPixels[imgPixelCounter + 1] = pixels[x][y] * 255;
-                imgPixels[imgPixelCounter + 2] = pixels[x][y] * 255;
-                imgPixels[imgPixelCounter + 3] = 255; // alpha channel
-                imgPixelCounter += 4;
-              }
-            }
-            ctx.putImageData(imgData, 0, 0);
-          },
+          type: jsPsychImageKeyboardResponse,
+          stimulus: [],
           choices: "NO_KEYS",
           trial_duration: 500,
+          on_start: function(trial) => {
+            let rf_value = non_circle == 1 ? training_staircase_value : 0;
+            let rf_value_to_use =  parseFloat(rf_value.toFixed(4));
+            trial.stimulus = [stim_path+('shape_')+(rf_value_to_use.toString())+('.png')];
+            console.log(rf_value_to_use);
+          }
         },
         {
           type: jsPsychHtmlKeyboardResponse,
           stimulus: "",
           choices: "NO_KEYS",
-          trial_duration: 200
+          trial_duration: 500
         },
         {
-          type: jsPsychCanvasKeyboardResponse,
-          canvas_size: [300, 300],
-          stimulus: (c) => {
-            const rf_value = non_circle == 2 ? training_staircase_value : 0;
-            const pixels = rf_picCreator(rf_value);
-
-            const ctx = c.getContext("2d");
-
-            const imgData = ctx.getImageData(0, 0, 300, 300);
-            const imgPixels = imgData.data;
-            let imgPixelCounter = 0;
-            for (let y = 0; y < pixels.length; y++) {
-              for (let x = 0; x < pixels[y].length; x++) {
-                imgPixels[imgPixelCounter] = pixels[x][y] * 255;
-                imgPixels[imgPixelCounter + 1] = pixels[x][y] * 255;
-                imgPixels[imgPixelCounter + 2] = pixels[x][y] * 255;
-                imgPixels[imgPixelCounter + 3] = 255; // alpha channel
-                imgPixelCounter += 4;
-              }
-            }
-            ctx.putImageData(imgData, 0, 0);
-          },
+          type: jsPsychImageKeyboardResponse,
+          stimulus: [],
           choices: "NO_KEYS",
-            trial_duration: 500,
-           
+          trial_duration: 500,
+          on_start: function(trial) => {
+            let rf_value = non_circle == 2 ? training_staircase_value : 0;
+            let rf_value_to_use =  parseFloat(rf_value.toFixed(4));
+            trial.stimulus = [stim_path+('shape_')+(rf_value_to_use.toString())+('.png')];
+            console.log(rf_value_to_use);
+          }
         },
         {
           type: jsPsychHtmlKeyboardResponse,
@@ -390,6 +361,6 @@ const test_timeline = {
   };
 
 
-    jsPsych.run([TestInstructions, test_timeline]);
+    jsPsych.run([TrainingInstructions, training_timeline, TestInstructions, test_timeline]);
   </script>
 </html>
